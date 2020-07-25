@@ -1,0 +1,401 @@
+---
+title: "Final Project Long EDA Report"
+author: "Junhua Tan"
+date: "12/08/2019"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    highlight: "tango"
+    code_folding: hide
+    df_print: paged
+
+---
+
+# Introduction
+This data was published 4 years ago on Kaggle by Airbnb for the purpose of training a model in which predict where a new user will book their first travel experience (data source: https://www.kaggle.com/c/airbnb-recruiting-new-user-bookings/overview). With this information, the company Airbnb hope to share more personalized content with the target users and better forecast their demands. The data folder contains mant csv files in addition to the training and testing set for building this prediction model. However, for our purpose of this final project, I will conduct a full Exploratory Data Analysis on the user demographics of Airbnb using these data, specifically the train dataset provided in `"train_users_2.csv"` and the test dataset `"test_users.csv"` which includes the over 200000+ unique users information of this site.
+
+I chose this data because personally I am a heavy-user on Airbnb when I travel, and I am interested in the analysis behind a common user action: booking their first travel experience. I am curious behind what factors decide a new user to book their first travel experience in Airbnb and how do they come up with the decision. From there, I can compare and reflect upon my own user experience, and from this, I can also gain insights to user experience as a developer in the future. Specifically, I want to know how different demographic factors such as gender, age group, weekdays, times and many more influences user's decision on purchasing the travel experience.
+
+# Exploratory Data Analysis
+## Set-up
+1) Load libraries
+```{r Load libraries, message=FALSE, warning=FALSE}
+# Load libraries
+library(tidyverse)
+library(lubridate)
+library(forcats)
+library(dataMaid)
+```
+
+2) Read processed combined dataset and assigned column types
+```{r Read processed dataset}
+# Read processed combined dataset
+dataset <- read_csv(
+  "data/processed/combine_data.csv",
+  col_types = cols(
+    date_account_created = col_date(format = "%Y-%m-%d"),
+    timestamp_first_active = col_datetime(format = "%Y%m%d%H%M%S"),
+    date_first_booking = col_date(format = "%Y-%m-%d"),
+    gender = col_factor(),
+    age = col_double(),
+    signup_method = col_factor(),
+    signup_flow = col_double(),
+    language = col_factor(),
+    affiliate_channel = col_factor(),
+    affiliate_provider = col_factor(),
+    signup_app = col_factor(),
+    first_device_type = col_factor(),
+    first_browser = col_factor(),
+    country_destination = col_factor(),
+    book = col_factor()
+  ))
+```
+
+3) View percentage of missing values for each column after cleaning
+```{r View percentage of missing values for each column, message=FALSE, warning=FALSE}
+# View percentage of missing values for each column
+dataset %>% 
+  summarise_all(funs(
+    sum(is.na(.)) / length(.)
+    ))
+```
+* Most abnormal values in `age` (for example those age = 2014 or 1) are handled by replacing age range outside (10,100) with median value of age. 
+* Missing values in `age` can be replaced with median but it will largely skewed the user population in the subsequent section, thus it is not replaced immediately.
+* Missing values in `date_first_booking` contains two situations that either 1) comes from the test data where `date_first_booking` is missing for all observations for testing models in kaggle (which we will not), or 2) comes from train data where the users did NOT make a reservation up until the date of the data published. The first situation will be handled by replacing those from the test data as `"-unknown-"` in the new `book` variable we created for this purpose, and the second situation will be handled by keeping the "NA" and storing a `"0"` on the `book` variable.
+
+---
+
+## Explore user demographics
+### Age
+View distribution of `age` after replacing outliers with median age value. Notice, there are still 116866 `NA` values in `age` removed by `geom_histogram()` here (~42% of all data). However, I am cautious to assign all `NA` to the median value in data cleaning before visualizing the effect these large amount of `NA` will do in skewing the representation of age. 
+```{r Distribution of age, warning=FALSE}
+# View distribution of age after replacing outliers with median age value.
+dataset %>% 
+  ggplot(aes(x = age)) +
+  geom_histogram(bins = 30) +
+  labs(title = "Distribution of age", y = "Count", x = "Age")
+```
+
+Mutate a new categorical variable `young` that divide age group at 45 to assign either "Young" and "Old" users. From summary statistics of `young`, there are disproportionally more young users under age of 45 (~4X) than older users.
+```{r Creating `young`}
+# Mutate a new categorical variable `young` that divide age group at 45 to assign either "Young" and "Old" users.
+young_old <- dataset %>% 
+  mutate(young = ifelse(age < 45, "Young", "Old"))
+young_old$young <- as.factor(young_old$young)
+
+# From summary statistics of `young`, there are disproportionally more young users under age of 45 than older users.
+summary(young_old$young)
+```
+
+View the effect of age group in booking status. Out of all users known of booking status, over half of both old and young users have booked a reservation here on Airbnb with a slightly higher percentage of booking for younger users (old: 0.53, young: 0.56). Interestingly, users that have not specified their ages seem to have a significantly higher percentage of not booking. This findings can hint to two potential hypotheses: 1) users that have not filled their personal information are less committed to using the site for booking, or 2) users are more likely to fill their personal information when decide to book a place to stay on Airbnb.
+```{r Effect of age on booking, warning=FALSE}
+# View the effect of age group in booking status. Out of all users known of booking status, over half of both old and young users have booked a reservation here on Airbnb with a slightly higher percentage of booking for younger users (old: 0.53, young: 0.56).
+young_old %>% 
+  filter(country_destination != "-unknown-") %>% 
+  group_by(young, book) %>% 
+  summarise(count = n()) %>% 
+  mutate(prop = count/sum(count)) %>% 
+  ggplot(aes(x = reorder(book, -prop), y = prop, fill = young)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(title = "Effect of age on booking", y = "Proportion", x = "Booking Status")
+```
+
+Of all users that are known to have make a booking on Airbnb, there are a significantly higher percentage of travel destination being in the US than other countries for all age groups. There is a slightly more percentage of young users who booked a place to stay in the US than old users. However, there are also a slightly higher percentage of old users who book a place to stay in outside of US, especially in European countries like French (FR), Italy (IT) and England (GB).
+```{r Effect of age on destination country, warning=FALSE}
+# Of all users that are known to have make a booking through Airbnb, there are a significantly higher percentage of travel destination in the US than other countries. Fewer proportion of older users traveled in the US than younger users but older users tent to travel outside of US more than younger users.
+young_old %>%
+  filter(book != "-unknown-") %>% 
+  filter(!is.na(date_first_booking)) %>% 
+  group_by(young, country_destination) %>% 
+  summarise(count = n()) %>% 
+  mutate(prop = count/sum(count)) %>% 
+  ggplot(aes(x = reorder(country_destination, -prop), y = prop, fill = young)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(title = "Effect of age on destination country", y = "Booking proportion", x = "Country of destination")
+```
+
+---
+
+### Gender
+View the distribution of `gender`. Notice there are almost half (47%) of gender data specified as "-unknown-", which the users did not fill. And there are slightly more female (28%) than male (24%) users.
+```{r View distribution of gender}
+# View distribution of gender
+dataset %>% 
+  ggplot(aes(x = gender)) +
+  geom_bar() +
+  labs(title = "Distribution of gender", y = "Count", x = "Gender")
+
+dataset %>% 
+  group_by(gender) %>% 
+  summarise(count = n(),
+            prop = count/nrow(dataset))
+```
+
+View the effect of gender group in booking status. Out of all users known of booking status, there are about half for both male and female users that have booked a reservation on Airbnb (male: 51%, female: 51%). Again, users that have not specified their gender also have a significantly higher percentage of not booking and hint to our two potential hypotheses about personal information and booking. Interestingly, users who specific their gender as "OTHER" has a significantly higher percentage of booking (62%) than both male and female groups. This can be reasoned for higher stake and effort of the other gender groups to identify differently than the binary genders that again emphasizes the importance of personal information on booking status.
+```{r View effect of gender in booking}
+# There does not seem a relationship between booking status and gender.
+dataset %>% 
+  filter(country_destination != "-unknown-") %>% 
+  group_by(gender, book) %>% 
+  summarise(count = n()) %>% 
+  mutate(prop = count/sum(count)) %>% 
+  ggplot(aes(x = book, y = prop, fill = gender)) +
+  geom_bar(stat = "identity", position=position_dodge()) +
+  labs(title = "Effect of gender in booking", y = "Proportion", x = "Booking Status")
+```
+
+Of all users that are known to have make a booking on Airbnb, again, there are a significantly higher percentage of travel destination being in the US than other countries for all gender groups. Interestingly, there is a slightly more percentage of male users who booked a place to stay in other countries outside of the US and other European countries listed. In contrast, female users have a slightly higher percentage in booking a place to stay within US and other European countries. In addition, there are also a lower percentage of users identified as other genders to book a place outside of US than other groups.
+```{r View effect of gender in destination country}
+# View effect of gender in destination country
+dataset %>% 
+  filter(book != "-unknown-") %>% 
+  filter(!is.na(date_first_booking)) %>% 
+  group_by(gender, country_destination) %>% 
+  summarise(count = n()) %>% 
+  mutate(prop = count/sum(count)) %>% 
+  ggplot(aes(x = reorder(country_destination, -prop), y = prop, fill = gender)) +
+  geom_bar(stat = "identity", position=position_dodge()) +
+  labs(title = "Effect of gender in destination country", y = "Booking proportion", x = "Country of destination")
+```
+
+---
+
+### Language
+View the distribution of `language`. Notice there are over 96% of users uses English, and other top used languages are Chinese (`zh`), French (`fr`), Spanish (`es`), and Korean (`ko`) with less than 1% of users.
+```{r Users with different language perferences}
+# Users with different language perferences
+dataset %>% 
+  ggplot(aes(x = language)) +
+  geom_bar() +
+  labs(title = "Distribution of users with different language perferences", y = "Bookings", x = "Language")
+
+dataset %>% 
+  group_by(language) %>% 
+  summarise(count = n(),
+             prop = count/nrow(dataset)) %>% 
+  arrange(desc(prop))
+```
+
+To see the trend of growth of bookings from users with English perference, the line chart below plots the amount of total users that book on Airbnb against the years of records. Notice there are a significant growth before 2013 and a slight plateau during 2013-2014 followed by significant drop between 2014-2015. In the next few plots, we will be further investigate and reason through these trends.
+```{r Bookings from users with English perference}
+# Bookings from users with English perference
+dataset %>%
+  filter(language == "en") %>% 
+  filter(!is.na(date_first_booking)) %>% 
+  group_by(year(date_first_booking), language) %>%
+  summarise(count = n()) %>% 
+  rename("language" = "language", "year" = "year(date_first_booking)", "count" = "count") %>% 
+  ggplot(aes(x = year, y = count, color = language)) + 
+  geom_line() +
+  labs(title = "Amount of bookings from users with English perference", y = "Bookings", x = "Year")
+```
+
+In fact, there are less records of data from 2015 published as the data is released in the same year for kaggle competition. Thus, we will be filtering out the data from 2015 to see the accurate trend of user growth in the furture plots.
+```{r Booking growth across years}
+# Booking growth across years
+dataset %>%
+  group_by(year(date_first_booking)) %>%
+  summarise(count = n()) 
+```
+
+There seems also a static growth for users that perfer language other than English. Notice these languages are made avaliable at different years, we will be looking more into that in the next plot.
+```{r Booking growth across languages}
+# Booking growth across languages
+dataset %>%
+  filter(language != "en") %>% 
+  filter(!is.na(date_first_booking)) %>% 
+  filter(year(date_first_booking) != "2015") %>% 
+  group_by(year(date_first_booking), language) %>%
+  summarise(count = n()) %>% 
+  rename("language" = "language", "year" = "year(date_first_booking)", "count" = "count") %>% 
+  ggplot(aes(x = year, y = count, color = language)) + 
+  geom_line() +
+  labs(title = "Amount of bookings from users with language perference other than English", y = "Bookings", x = "Year")
+```
+
+For the first few languages avaliable in 2010, they are indeed the top five user language perferences we have seen from above. Of these, users that perfer Chinese and Korean gradually grow over 2010-2014. And users that perfer French, German, and Spanish all shows a growth until a drop in 2013. This interesting trend motivates us to find out what happen in 2013 resulting in these decrease in user growth.
+```{r Avaliable languages as in 2010}
+# Avaliable languages as in 2010
+dataset %>%
+  filter(language != "en") %>% 
+  filter(!is.na(date_first_booking)) %>% 
+  filter(year(date_first_booking) != "2015") %>% 
+  group_by(year(date_first_booking), language) %>%
+  summarise(count = n()) %>%
+  filter(language == "fr" | language == "de" | language == "es" | language == "zh" | language == "ko") %>% 
+  rename("language" = "language", "year" = "year(date_first_booking)", "count" = "count") %>% 
+  ggplot(aes(x = year, y = count, color = language)) + 
+  geom_line() +
+  labs(title = "Amount of bookings from users with language perferences avaliable since 2010", y = "Bookings", x = "Year")
+```
+
+To find out what happen in 2013 that results in the drop in user growth for language perference of French, German, and Spanish, the following plot shows the user growth for other language perferences beside English and the other top five languages. Here, we see gradual increases for other countries such as Italy (`it`), Russia (`ru`), and Japan (`ja`). Notice in 2013, there are also growths in other Romance languages such as Portugese and Uralic languages such as Hungarian and Montenegrin language. One reason underlying the decrease in user population for the major European languages might be that there are more Europeans languages made avaliable in between 2011-2014 resulting in the plateau of English perference and drop in  perference of European languages (French, German, and Spanish).
+```{r More languages}
+# More languages
+dataset %>%
+  filter(language != "en") %>% 
+  filter(!is.na(date_first_booking)) %>% 
+  filter(year(date_first_booking) != "2015") %>% 
+  group_by(year(date_first_booking), language) %>%
+  summarise(count = n()) %>%
+  filter(language != "fr", language != "de", language != "es", language != "zh", language != "ko") %>% 
+  rename("language" = "language", "year" = "year(date_first_booking)", "count" = "count") %>% 
+  ggplot(aes(x = year, y = count, color = language)) + 
+  geom_line() +
+  labs(title = "Amount of bookings from users with other languages avaliable later", y = "Bookings", x = "Year")
+```
+
+---
+
+## Explore dates
+
+In this section, we will examine the variable `date_first_booking` with the time difference between `date_account_created` and `timestamp_first_active`. We create an `urgency()` function that divides the time difference into 7 groups: "before" when users book before creating an account, "on the same day" when users book on the same day as creating an account, "within three days", "within a week", "within a month", "within one year", and "more than one year" after creating an account. Then we mutate a variable that extract the time difference between day of booking and day of creating the account, as well as an `urgency` variable that store the category of this time difference. From the bar chart below, we can see from users who booked on Airbnb, most users booked on the same day or within three days of creating their accounts. Interestingly, there are also a peak of users who booked within a year of creating their accounts.
+
+### Time between creating an account to booking
+```{r Time between creating an account to booking}
+# Time between creating an account to booking
+urgency <- function(x) {
+  cut(x, 
+    breaks = c(-Inf, -1, 0, 3, 7, 30, 365, Inf),
+    labels = c("before", "on the same day", "within three days", "within a week", "within a month", "within one year", "more than one year") 
+  )
+}
+
+create_acc_to_book <- dataset %>% 
+  filter(!is.na(date_first_booking)) %>% 
+  mutate(days_to_book = as.double(date_first_booking - date_account_created),
+         urgency = urgency(days_to_book)) 
+
+create_acc_to_book %>% 
+  group_by(urgency) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(x = urgency, y = count)) +
+  geom_bar(stat = "identity")  +
+  labs(title = "Time difference between creating an account and booking a place to stay", y = "Bookings", x = "Urgency")
+```
+
+### Time between being active on site to booking
+A similar trend can be seen for the time difference between first being active on the website and booking. Of users who actually booked on Airbnb, most booked within the same day or within three days as they are first active, but there are also a peak of users who booked within a year.
+```{r Time between being active on site to booking}
+# Time between being active on site to booking
+active_to_book <- dataset %>% 
+  filter(!is.na(date_first_booking)) %>% 
+  mutate(days_to_book = as.double(date_first_booking - date(timestamp_first_active)),
+         urgency = urgency(days_to_book))
+
+active_to_book %>% 
+  group_by(urgency) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(x = urgency, y = count)) +
+  geom_bar(stat = "identity")  +
+  labs(title = "Time difference between being active on website and booking a place to stay", y = "Bookings", x = "Urgency")
+```
+
+### Time between being active on site to create an account
+To find out if there are a similar pattern for time difference between being active and creating an account. A similar manipulation is made on dataset and the bar plot below shows otherwise that out of all users who booked on Airbnb, most if not all users create account on the same day as they are first active on the website. This trend is same for ALL users including those that does not booked on Airbnb (shown in the second plot).
+```{r Time between being active on site to create an account}
+# Time between being active on site to create an account
+active_to_create_acc <- dataset %>% 
+  filter(!is.na(date_first_booking)) %>% 
+  mutate(days_to_create_acc = as.double(date_account_created - date(timestamp_first_active)),
+         urgency = urgency(days_to_create_acc))
+
+active_to_create_acc %>% 
+  group_by(urgency) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(x = urgency, y = count)) +
+  geom_bar(stat = "identity")  +
+  labs(title = "Time between active on website and creating account for users who booked", y = "Bookings", x = "Urgency")
+
+active_to_create_acc2 <- dataset %>% 
+  mutate(days_to_create_acc = as.double(date_account_created - date(timestamp_first_active)),
+         urgency = urgency(days_to_create_acc))
+
+active_to_create_acc2 %>% 
+  group_by(urgency) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(x = urgency, y = count)) +
+  geom_bar(stat = "identity")  +
+  labs(title = "Time between being active on website and creating account for all users", y = "Count", x = "Urgency")
+```
+
+---
+
+### Daily bookings
+Next, we will be looking on the amount of bookings on Airbnb between 2010 to 2014. Notice there is a significant growth in users between 2010 to first half of 2014. The drop in the second half of 2014 might due to either lack of data or a special reason.
+```{r Daily bookings}
+# Daily bookings
+# Make a new variable `daily` to store the dataset mutated with corresponding `wday` weekdays of `date_first_booking`
+daily <- dataset %>% 
+  filter(!is.na(date_first_booking), year(date_first_booking) != 2015) %>% 
+  group_by(date_first_booking) %>% 
+  summarise(count = n())
+
+daily %>% 
+  ggplot(aes(x = date_first_booking, y = count)) + 
+  geom_line() +
+  labs(title = "Daily bookings", y = "Bookings", x = "Day")
+```
+
+### Weekly bookings
+After confirming the trend, we will look into how weekdays affect the amount of bookings. There seems to be an overall fewer booking made on Monday, Saturday and Sunday than other weekdays. However, the mean bookings for all days in a week is similar at about 25-30 bookings per day.
+```{r Weekly bookings}
+# Weekly bookings
+# Make a new function `monday_first()` to arrange the order to start from Monday to Sunday
+monday_first <- function(x) {
+  fct_relevel(x, levels(x)[-1])
+}
+
+# Make a new variable `weekly` to store the dataset mutated with corresponding `wday` weekdays of `date_first_booking`
+weekly <- dataset %>% 
+  filter(!is.na(date_first_booking), year(date_first_booking) != 2015) %>% 
+  mutate(wday = wday(date_first_booking, label = TRUE))
+         
+weekly %>% 
+  group_by(wday) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(x = monday_first(wday), y = count)) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Weekly bookings", y = "Bookings", x = "Day of the week")
+
+weekly <- weekly %>% 
+  group_by(date_first_booking ,wday) %>% 
+  summarise(count = n()) 
+
+weekly %>% 
+  ggplot(aes(x = monday_first(wday), y = count)) + 
+  geom_boxplot() +
+  labs(title = "Average Weekly bookings", y = "Bookings per day", x = "Day of the week")
+```
+
+### Monthly bookings
+Next, we will look into how month affect the amount of bookings. There seems to be an overall fewer booking made on months other than May and June. The mean bookings per day shown for each month also confirms the trend that the amount of bookings per day peaks at May and June. 
+```{r Monthly bookings}
+# Monthly bookings
+# Make a new variable `monthly` to store the dataset mutated with corresponding `month` of `date_first_booking`
+monthly <- dataset %>% 
+  filter(!is.na(date_first_booking), year(date_first_booking) != 2015) %>% 
+  mutate(month = month(date_first_booking, label = TRUE)) 
+
+monthly %>% 
+  group_by(month) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(x = month, y = count)) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Monthly bookings", y = "Bookings", x = "Month")
+
+monthly <- monthly %>% 
+  group_by(date_first_booking ,month) %>% 
+  summarise(count = n()) 
+
+monthly %>% 
+  ggplot(aes(x = month, y = count)) + 
+  geom_boxplot() +
+  labs(title = "Average monthly bookings", y = "Bookings per day", x = "Month")
+```
+
+---
+
+# Conclusion
+Overall, the user demographic of Airbnb comprised of an average age of 36, more female users and perfers the use of English on the web interface. In general, users who filled out their personal informations such as age and gender are more likely to book a place to stay through the website than those that choose not to provide their information. Specifically, out of those who filled their age information, there are a equal proportion (1:1) of older users of 45 years old or above who decided to book through Airbnb or not. In contrast, young users of below 45 years old are more likely to book through Airbnb. The destination between age groups also differs in that older users also tend to be outside of the US especially higher in European countries while younger users tend to book a place to stay within US. While there might be more female users, the proportions of booking a place on Airbnb for male and female users are similar and higher than those who did not fill their gender information. Interestingly, people who identified as other genders has a significantly higher percentage of booking that might due to their higher stake and value to identify away from the binary genders. While most users perfer English on their interface, there is also a stable growth of users that perfers other languages, and as Airbnb increases its language diversity, there are more users using the minority languages which reaffirms the accessibility by incorporting more language perferences. When we dive deeper into the time for users to take the action of booking a place on Airbnb, most people who booked on the same day or within three days of first being active on the website and creating their accounts. However, there is also a significant peak for people to book within one year of first being active and/or created their accounts, which suggests the uniqueness of Airbnb for people looking a place to stay when traveling. People also tends to make their decision of booking a place during weekdays especially from Tuesday to Friday, and more people booked on the month of May and June probably due to the time corresponding the beginning of the summer break.
