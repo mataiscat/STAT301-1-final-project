@@ -1,4 +1,6 @@
-## Welcome to GitHub Pages
+# Welcome to Junhua's Final Project for STAT301-1!
+
+Northwestern Univeristy STAT301-1 (Fall 2019)
 
 You can use the [editor on GitHub](https://github.com/mataiscat/STAT301-1-final-project/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
 
