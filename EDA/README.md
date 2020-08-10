@@ -1,4 +1,4 @@
-## Finding 1: Age and Gender Perference on Travel Destination
+## Finding 1: Age and Gender Preference on Travel Destination
 
 Both old and young users have approximately 50% of booking with a slightly higher proportion for young users ~55%, but this difference has not been tested for significance. Both male and female users have approximately the same percentage of booking and not booking (~50%). Notably, there are a lower proportion of user booking for those with no age or gender information.
 
@@ -23,7 +23,7 @@ young_old %>%
   theme_minimal()
 ```
 
-[](README_figs/README-Effect of age on destination country-1.png)
+![](README_figs/README-Effect of age on destination country-1.png)<!-- -->
 
 
 ```r
@@ -42,11 +42,11 @@ dataset %>%
   theme_minimal()
 ```
 
-[](README_figs/README-View effect of gender in destination country-1.png)
+![](README_figs/README-View effect of gender in destination country-1.png)<!-- -->
 
 ## Finding 2: Accessibility improvement on languages
 
-Over the course of 2010-2014, users with English perference has been the main target group and has grew significantly along with the total user population. Now with Airbnb's effort in accommodating more language preferences, it has became more accessible to people of other cultures and regions. We can examine their accessibility improvement by analyze the growth of user populations for other language preferences. In 2010, more languages are made available to users among which are French, German, Spanish, Chinese, and Korean. These also turn out to be the top five user language preferences beside English and made up ~99% of the user population other than English users. Users that perfer Chinese and Korean gradually grow over 2010-2014. And users that perfer French, German, and Spanish all shows a growth until a drop in 2012-2013 when more European languages are made available and splited the user groups.
+Over the course of 2010-2014, users with English preference has been the main target group and has grew significantly along with the total user population. Now with Airbnb's effort in accommodating more language preferences, it has became more accessible to people of other cultures and regions. We can examine their accessibility improvement by analyze the growth of user populations for other language preferences. In 2010, more languages are made available to users among which are French, German, Spanish, Chinese, and Korean. These also turn out to be the top five user language preferences beside English and made up ~99% of the user population other than English users. Users that perfer Chinese and Korean gradually grow over 2010-2014. And users that perfer French, German, and Spanish all shows a growth until a drop in 2012-2013 when more European languages are made available and splited the user groups.
 
 
 ```r
@@ -67,11 +67,11 @@ dataset %>%
   # visualize using ggplot2
   ggplot(aes(x = year, y = count, color = language)) +
   geom_line() +
-  labs(title = "Amount of bookings from users with language perference other than English", y = "Bookings", x = "Year") +
+  labs(title = "Amount of bookings from users with language preference other than English", y = "Bookings", x = "Year") +
   theme_minimal()
 ```
 
-[](README_figs/README-Booking growth across languages-1.png)
+![](README_figs/README-Booking growth across languages-1.png)<!-- -->
 
 ## Finding 3: Time between creating an account to booking
 
@@ -99,4 +99,4 @@ create_acc_to_book %>%
   labs(title = "Time difference between creating an account and booking a place to stay", y = "Bookings", x = "Urgency")
 ```
 
-[](README_figs/README-Time between creating an account to booking-1.png)
+![](README_figs/README-Time between creating an account to booking-1.png)<!-- -->
