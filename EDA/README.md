@@ -1,20 +1,6 @@
----
-title: "EDA Executive Summary"
-author: "Junhua Tan"
-date: "12/08/2019"
-output: 
-  html_document:
-    keep_md: true
-
----
-
-
-
-
-
 ## Finding 1: Age and Gender Perference on Travel Destination
 
-Both old and young users have approximately 50% of booking with a slightly higher proportion for young users ~55%, but this difference has not been tested for significance. Both male and female users have approximately the same percentage of booking and not booking (~50%). Notably, there are a lower proportion of user booking for those with no age or gender information. 
+Both old and young users have approximately 50% of booking with a slightly higher proportion for young users ~55%, but this difference has not been tested for significance. Both male and female users have approximately the same percentage of booking and not booking (~50%). Notably, there are a lower proportion of user booking for those with no age or gender information.
 
 Generally, there are a higher proportion of booking in the US as the destination country across gender and age groups. Interestingly, users that have indicated as other genders have a slightly higher percent of booking for destination countries outside of the US than other groups.
 
@@ -24,12 +10,12 @@ Generally, there are a higher proportion of booking in the US as the destination
 # `young` is made to divide user age group at 45 where <45 ("Young) and =>45 ("Old")
 young_old %>%
   # look at users who booked a visit
-  filter(book == "Yes") %>% 
+  filter(book == "Yes") %>%
   # by age group and country
-  group_by(young, country_destination) %>% 
+  group_by(young, country_destination) %>%
   # calculate the proportion of bookings
-  summarise(count = n()) %>% 
-  mutate(prop = count/sum(count)) %>% 
+  summarise(count = n()) %>%
+  mutate(prop = count/sum(count)) %>%
   # visualize using ggplot2 in a bar chart
   ggplot(aes(x = reorder(country_destination, -prop), y = prop, fill = young)) +
   geom_bar(stat = "identity", position = position_dodge()) +
@@ -37,18 +23,18 @@ young_old %>%
   theme_minimal()
 ```
 
-![](README_figs/README-Effect of age on destination country-1.png)<!-- -->
+[](README_figs/README-Effect of age on destination country-1.png)
 
 
 ```r
-dataset %>% 
+dataset %>%
   # look at users who booked a visit
-  filter(book == "Yes") %>% 
+  filter(book == "Yes") %>%
   # by gender group and country
-  group_by(gender, country_destination) %>% 
+  group_by(gender, country_destination) %>%
   # calculate the proportion of bookings
-  summarise(count = n()) %>% 
-  mutate(prop = count/sum(count)) %>% 
+  summarise(count = n()) %>%
+  mutate(prop = count/sum(count)) %>%
   # visualize using ggplot2 in a bar chart
   ggplot(aes(x = reorder(country_destination, -prop), y = prop, fill = gender)) +
   geom_bar(stat = "identity", position=position_dodge()) +
@@ -56,7 +42,7 @@ dataset %>%
   theme_minimal()
 ```
 
-![](README_figs/README-View effect of gender in destination country-1.png)<!-- -->
+[](README_figs/README-View effect of gender in destination country-1.png)
 
 ## Finding 2: Accessibility improvement on languages
 
@@ -66,26 +52,26 @@ Over the course of 2010-2014, users with English perference has been the main ta
 ```r
 dataset %>%
   # look at users with other language preferences than English
-  filter(language != "en") %>% 
+  filter(language != "en") %>%
   # look at those who booked
-  filter(book == "Yes") %>% 
+  filter(book == "Yes") %>%
   # excluded year of 2015 for containing only partial info
-  filter(year(date_first_booking) != "2015") %>% 
+  filter(year(date_first_booking) != "2015") %>%
   # group by year and language
   group_by(year(date_first_booking), language) %>%
-  summarise(count = n()) %>% 
+  summarise(count = n()) %>%
   # select the first five languages made accessible
-  filter(language == "fr" | language == "de" | language == "es" | language == "zh" | 
+  filter(language == "fr" | language == "de" | language == "es" | language == "zh" |
            language == "ko") %>%
-  rename("language" = "language", "year" = "year(date_first_booking)", "count" = "count") %>% 
+  rename("language" = "language", "year" = "year(date_first_booking)", "count" = "count") %>%
   # visualize using ggplot2
-  ggplot(aes(x = year, y = count, color = language)) + 
+  ggplot(aes(x = year, y = count, color = language)) +
   geom_line() +
   labs(title = "Amount of bookings from users with language perference other than English", y = "Bookings", x = "Year") +
   theme_minimal()
 ```
 
-![](README_figs/README-Booking growth across languages-1.png)<!-- -->
+[](README_figs/README-Booking growth across languages-1.png)
 
 ## Finding 3: Time between creating an account to booking
 
@@ -94,23 +80,23 @@ Now I want to examine the time between users created an account and made a booki
 
 ```r
 urgency <- function(x) {
-  cut(x, 
+  cut(x,
     breaks = c(-Inf, -1, 0, 3, 7, 30, 365, Inf),
-    labels = c("before", "on the same day", "within three days", "within a week", "within a month", "within one year", "more than one year") 
+    labels = c("before", "on the same day", "within three days", "within a week", "within a month", "within one year", "more than one year")
   )
 }
 
-create_acc_to_book <- dataset %>% 
-  filter(!is.na(date_first_booking)) %>% 
+create_acc_to_book <- dataset %>%
+  filter(!is.na(date_first_booking)) %>%
   mutate(days_to_book = as.double(date_first_booking - date_account_created),
-         urgency = urgency(days_to_book)) 
+         urgency = urgency(days_to_book))
 
-create_acc_to_book %>% 
-  group_by(urgency) %>% 
-  summarise(count = n()) %>% 
+create_acc_to_book %>%
+  group_by(urgency) %>%
+  summarise(count = n()) %>%
   ggplot(aes(x = urgency, y = count)) +
   geom_bar(stat = "identity")  +
   labs(title = "Time difference between creating an account and booking a place to stay", y = "Bookings", x = "Urgency")
 ```
 
-![](README_figs/README-Time between creating an account to booking-1.png)<!-- -->
+[](README_figs/README-Time between creating an account to booking-1.png)
