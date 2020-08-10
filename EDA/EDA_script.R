@@ -94,7 +94,6 @@ dataset %>%
 # booking than not. Again, there are a lower proportion of users with no gender information 
 # to book on Airbnb.
 dataset %>% 
-  filter(country_destination != "-unknown-") %>% 
   group_by(gender, book) %>% 
   summarise(count = n()) %>% 
   mutate(prop = count/sum(count)) %>% 
