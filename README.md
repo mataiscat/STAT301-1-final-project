@@ -2,11 +2,11 @@
 
 This GitHub Repo is a place to present my final project for Northwestern University STAT301-1 (Fall 2019).
 
-### Data Source: [Airbnb New User Bookings (Kaggle)]((https://www.kaggle.com/c/airbnb-recruiting-new-user-bookings/overview)
+### Data Source: [Airbnb New User Bookings (Kaggle)](https://www.kaggle.com/c/airbnb-recruiting-new-user-bookings/overview)
 
 This data was published 4 years ago (2016) by Airbnb on Kaggle for the purpose of building a predictive model to predict in which country a new user will book for his or her first travel experience. The downloaded data contain both training and testing datasets with user information and activity logs, a web session for users, summary statistics of users' age group, gender, and country of destination. The evaluation metric for this competition is NDCG (Normalized discounted cumulative gain) with k = 5, the maximum number of predicted destinations for each new user. With this information, the company hopes to create and share personalized content with the target users and better forecast their demands.
 
-I will first approach this dataset by conducting an [Exploratory Data Analysis](https://github.com/mataiscat/STAT301-1-final-project/tree/master/EDA) on the user demographics of Airbnb using 20% of the training dataset provided in `"train_users_2.csv"`, which includes over 40000+ observations. Then using the initial analysis, I will begin the data cleaning and wrangling process to address with potential data issues mentioned in the next section below. Finally, after data cleaning, I will proceed to the model building process trying different classification algorithms and compare their performance in predicting our target.
+I will first approach this dataset by conducting an [Exploratory Data Analysis (result is here)](https://github.com/mataiscat/STAT301-1-final-project/tree/master/EDA) on the user demographics of Airbnb using 20% of the training dataset provided in `"train_users_2.csv"`, which includes over 40000+ observations. Then using the initial analysis, I will begin the data cleaning and wrangling process to address with potential data issues mentioned in the next section below. Finally, after data cleaning, I will proceed to the model building process trying different classification algorithms and compare their performance in predicting our target.
 
 ### Why this Data
 
