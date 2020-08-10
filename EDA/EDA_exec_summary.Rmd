@@ -107,5 +107,6 @@ create_acc_to_book %>%
   summarise(count = n()) %>% 
   ggplot(aes(x = urgency, y = count)) +
   geom_bar(stat = "identity")  +
-  labs(title = "Time difference between creating an account and booking a place to stay", y = "Bookings", x = "Urgency")
+  labs(title = "Time difference between creating an account and booking a place to stay", y = "Bookings", x = "Urgency") +
+  theme_minimal()
 ```

@@ -13,29 +13,35 @@ output:
 ---
 
 # Introduction
-This data was published 4 years ago on Kaggle by Airbnb for the purpose of training a model in which predict where a new user will book their first travel experience (data source: https://www.kaggle.com/c/airbnb-recruiting-new-user-bookings/overview). With this information, the company Airbnb hope to share more personalized content with the target users and better forecast their demands. The data folder contains mant csv files in addition to the training and testing set for building this prediction model. However, for our purpose of this final project, I will conduct a full Exploratory Data Analysis on the user demographics of Airbnb using these data, specifically the train dataset provided in `"train_users_2.csv"` and the test dataset `"test_users.csv"` which includes the over 200000+ unique users information of this site.
+This data was published 4 years ago (2016) by Airbnb on Kaggle for the purpose of building a predictive model to predict in which country a new user will book for his or her first travel experience. The downloaded data contain both training and testing datasets with user information and activity logs, a web session for users, summary statistics of users' age group, gender, and country of destination. The evaluation metric for this competition is NDCG (Normalized discounted cumulative gain) with k = 5, the maximum number of predicted destinations for each new user. With this information, the company hopes to create and share personalized content with the target users and better forecast their demands.
 
-I chose this data because personally I am a heavy-user on Airbnb when I travel, and I am interested in the analysis behind a common user action: booking their first travel experience. I am curious behind what factors decide a new user to book their first travel experience in Airbnb and how do they come up with the decision. From there, I can compare and reflect upon my own user experience, and from this, I can also gain insights to user experience as a developer in the future. Specifically, I want to know how different demographic factors such as gender, age group, weekdays, times and many more influences user's decision on purchasing the travel experience.
+I am a heavy-user on Airbnb when I travel. I became interested in exploring this particular dataset because I want to analyze the possible hidden hints behind an important user decision as well as the company's main source of profit. I am curious behind what factors are important or perhaps indicative to a new user on booking their first travel experience. From there, I can compare and reflect upon my own experience from the perspective of a user and gain insights into designing user experience as a developer in the future. Specifically, I want to explore how different demographic factors such as gender, age group, weekdays, and other factors influence a user's decision on purchasing the travel experience. This will be a challenging process involving multiple data files and over 200000+ unique user data and will surely be a part of a larger research project that can extend into building prediction models and other insights in the future.
 
 # Exploratory Data Analysis
+
 ## Set-up
-1) Load libraries
-```{r Load libraries, message=FALSE, warning=FALSE}
+
+1) Load libraies
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # Load libraries
 library(tidyverse)
 library(lubridate)
+library(janitor)
 library(forcats)
 library(dataMaid)
 ```
 
 2) Read processed combined dataset and assigned column types
 ```{r Read processed dataset}
+# Set working directory
+setwd("~/Documents/GitHub/STAT301-1-final-project")
+
 # Read processed combined dataset
 dataset <- read_csv(
-  "data/processed/combine_data.csv",
+  "data/processed/EDA.csv",
   col_types = cols(
     date_account_created = col_date(format = "%Y-%m-%d"),
-    timestamp_first_active = col_datetime(format = "%Y%m%d%H%M%S"),
+    timestamp_first_active = col_datetime(format = "%Y-%m-%dT%H:%M:%SZ"),
     date_first_booking = col_date(format = "%Y-%m-%d"),
     gender = col_factor(),
     age = col_double(),
@@ -48,8 +54,9 @@ dataset <- read_csv(
     first_device_type = col_factor(),
     first_browser = col_factor(),
     country_destination = col_factor(),
-    book = col_factor()
-  ))
+    book = col_factor())
+  ) %>% 
+  clean_names()
 ```
 
 3) View percentage of missing values for each column after cleaning
@@ -60,15 +67,17 @@ dataset %>%
     sum(is.na(.)) / length(.)
     ))
 ```
-* Most abnormal values in `age` (for example those age = 2014 or 1) are handled by replacing age range outside (10,100) with median value of age. 
-* Missing values in `age` can be replaced with median but it will largely skewed the user population in the subsequent section, thus it is not replaced immediately.
-* Missing values in `date_first_booking` contains two situations that either 1) comes from the test data where `date_first_booking` is missing for all observations for testing models in kaggle (which we will not), or 2) comes from train data where the users did NOT make a reservation up until the date of the data published. The first situation will be handled by replacing those from the test data as `"-unknown-"` in the new `book` variable we created for this purpose, and the second situation will be handled by keeping the "NA" and storing a `"0"` on the `book` variable.
+* Most abnormal values in `age` (for example those age = 2014 or 1) are handled by dividing the age group into those that are younger than 45 (`young = "Young"`) and those that are equal to or older than 45 (`young = "Old"`).
+* Missing values in `date_first_booking` contains data where users did NOT make a reservation up until the date of the data published. I will handle these missing values by keeping the "NA" and storing a `"No"` on the `book` variable.
 
 ---
 
 ## Explore user demographics
+
 ### Age
-View distribution of `age` after replacing outliers with median age value. Notice, there are still 116866 `NA` values in `age` removed by `geom_histogram()` here (~42% of all data). However, I am cautious to assign all `NA` to the median value in data cleaning before visualizing the effect these large amount of `NA` will do in skewing the representation of age. 
+
+View distribution of `age`. Notice, there are still 116866 `NA` values in `age` removed by `geom_histogram()` here (~42% of all data). However, I am cautious to visualizing the effect these large amount of `NA` will do in skewing the representation of age. 
+
 ```{r Distribution of age, warning=FALSE}
 # View distribution of age after replacing outliers with median age value.
 dataset %>% 
@@ -78,6 +87,7 @@ dataset %>%
 ```
 
 Mutate a new categorical variable `young` that divide age group at 45 to assign either "Young" and "Old" users. From summary statistics of `young`, there are disproportionally more young users under age of 45 (~4X) than older users.
+
 ```{r Creating `young`}
 # Mutate a new categorical variable `young` that divide age group at 45 to assign either "Young" and "Old" users.
 young_old <- dataset %>% 
@@ -89,8 +99,12 @@ summary(young_old$young)
 ```
 
 View the effect of age group in booking status. Out of all users known of booking status, over half of both old and young users have booked a reservation here on Airbnb with a slightly higher percentage of booking for younger users (old: 0.53, young: 0.56). Interestingly, users that have not specified their ages seem to have a significantly higher percentage of not booking. This findings can hint to two potential hypotheses: 1) users that have not filled their personal information are less committed to using the site for booking, or 2) users are more likely to fill their personal information when decide to book a place to stay on Airbnb.
+
 ```{r Effect of age on booking, warning=FALSE}
-# View the effect of age group in booking status. Out of all users known of booking status, over half of both old and young users have booked a reservation here on Airbnb with a slightly higher percentage of booking for younger users (old: 0.53, young: 0.56).
+# View the effect of age group on booking status. 
+# Both old and young users have approximately 50% of booking with a slightly higher proportion
+# for young users ~55%, but this difference has not been tested for significance. Users with
+# no age information has a higher percentage of not booking.
 young_old %>% 
   filter(country_destination != "-unknown-") %>% 
   group_by(young, book) %>% 
