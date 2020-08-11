@@ -59,7 +59,7 @@ train <- dataset[indicesTrain, ]
 test <- dataset[indicesTest, ]
 EDA <- dataset[indicesEDA, ]
 
-# Update dataset to `combine_data.csv` (already made)
+# Update dataset to csv
 #write_csv(train, "data/processed/train.csv")
 #write_csv(test, "data/processed/test.csv")
 #write_csv(EDA, "data/processed/EDA.csv")
