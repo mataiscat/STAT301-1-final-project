@@ -43,7 +43,10 @@ young_old %>%
   # visualize using ggplot2 in a bar chart
   ggplot(aes(x = reorder(country_destination, -prop), y = prop, fill = young)) +
   geom_bar(stat = "identity", position = position_dodge()) +
-  labs(title = "Effect of age on destination country", y = "Booking proportion", x = "Country of destination") +
+  labs(title = "Effect of age on destination country", 
+       y = "Booking proportion", 
+       x = "Country of destination",
+       caption = "Data Source: Airbnb") +
   theme_minimal()
 ```
 
@@ -59,7 +62,10 @@ dataset %>%
   # visualize using ggplot2 in a bar chart
   ggplot(aes(x = reorder(country_destination, -prop), y = prop, fill = gender)) +
   geom_bar(stat = "identity", position=position_dodge()) +
-  labs(title = "Effect of gender in destination country", y = "Booking proportion", x = "Country of destination") +
+  labs(title = "Effect of gender in destination country", 
+       y = "Booking proportion", 
+       x = "Country of destination",
+       caption = "Data Source: Airbnb") +
   theme_minimal()
 ```
 
@@ -85,7 +91,10 @@ dataset %>%
   # visualize using ggplot2
   ggplot(aes(x = year, y = count, color = language)) + 
   geom_line() +
-  labs(title = "Amount of bookings from users with language preference other than English", y = "Bookings", x = "Year") +
+  labs(title = "Amount of bookings from users with language preference other than English", 
+       y = "Bookings", 
+       x = "Year",
+       caption = "Data Source: Airbnb") +
   theme_minimal()
 ```
 
