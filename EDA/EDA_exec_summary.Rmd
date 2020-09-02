@@ -93,7 +93,9 @@ dataset %>%
 
 Now I want to examine the time between users created an account and made a booking. To do so, I create an `urgency()` function that divides the time difference into 7 categories: "before" when users book before creating an account, "on the same day" when users book on the same day as creating an account, "within three days", "within a week", "within a month", "within one year", and "more than one year" after creating an account. 
 
-From the result below, we can see from users who booked on Airbnb, most users booked on the same day or within three days of first being active and/or creating their accounts, which suggests that most users have plans of traveling before looking for places to stay on Airbnb. Interestingly, there are also a peak of users who booked within a year of creating their accounts. This can also be used to highlight the uniqueness and viscosity of Airbnb as a one of the go-to site for people looking a place to stay when traveling even long after user registration.
+From the result below, we can see from users who booked on Airbnb, most users booked on the same day or within three days of first being active and/or creating their accounts for both domestic and international travels, which suggests that most users have plans of traveling before looking for places to stay on Airbnb. Interestingly, there are also a peak of users who booked within a year of creating their accounts. This can also be used to highlight the uniqueness and viscosity of Airbnb as a one of the go-to site for people looking a place to stay when traveling even long after user registration.
+
+We expected that booking a stay for international travel might be more cautious and time-consuming given the unfamiliarity of the destination. However, as we learned from the bar chart, we can see that from users who booked on Airbnb, there seems to be a similar trend for the amount of days users take to booked a stay. There might be a small difference for international travel (in blues) for booking of the same day and booking within a month that might reflect our hypothesis that it takes slightly longer time between creating an account to actual booking.
 
 ```{r Time-between-creating-an-account-to-booking,echo=FALSE, warning=FALSE}
 urgency <- function(x) {
@@ -109,12 +111,25 @@ create_acc_to_book <- dataset %>%
          urgency = urgency(days_to_book)) 
 
 create_acc_to_book %>% 
-  group_by(urgency) %>% 
+  mutate(international = ifelse(country_destination == "US", 0, 1)) %>% 
+  group_by(international, urgency) %>% 
   summarise(count = n()) %>% 
-  ggplot(aes(x = urgency, y = count)) +
-  geom_bar(stat = "identity")  +
-  labs(title = "Time difference between creating an account and booking a place to stay", y = "Bookings", x = "Urgency") +
-  theme_minimal()
+  mutate(prop = count/sum(count)) %>% 
+  ggplot(aes(x = urgency, y = prop, fill = as_factor(international))) +
+  geom_bar(stat = "identity", position = "dodge2") +
+  scale_fill_manual(values = c("#F8766D", "#00BFC4"),
+                    label = c("Domestic", "International")) +
+  labs(
+    title = "Time for Users to Book a Stay",
+    x = "Time Between Creating an Account to Booking a Stay",
+    y = "Proportion of Users",
+    caption = "Data Source: Airbnb"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45,
+                                   vjust = 0.7),
+        legend.position = "top",
+        legend.title = element_blank())
 ```
 
 # Conclusion
